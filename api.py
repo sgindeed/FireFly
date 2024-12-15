@@ -14,23 +14,19 @@ import threading
 
 app = FastAPI()
 
-# Load your pre-trained model
 cnn = tf.keras.models.load_model(r'G:\\FireFly\\model\\dpmodel.keras')
 
-# Initialize Jinja2 templates to serve from the root directory
 templates = Jinja2Templates(directory=".")
 
-# Function to play the alarm sound
 def sound_alarm():
-    duration = 1000  
-    freq = 1500 
+    duration = 1000
+    freq = 1500
     winsound.Beep(freq, duration)
 
-# Function to send an email alert
 def send_email_alert():
-    sender_email = "anny14062110@gmail.com"
-    receiver_email = "sup512551@gmail.com"
-    password = "vcdgnodeeklwtfsq"  # Consider using environment variables instead
+    sender_email = "SENDER_MAIL"
+    receiver_email = "RECIEVER_MAIL"
+    password = "**************"
     subject = "Fire Alert!"
     body = "Warning! A fire has been detected. Please check the surveillance footage immediately."
 
@@ -45,25 +41,21 @@ def send_email_alert():
             server.starttls()
             server.login(sender_email, password)
             server.send_message(message)
-        print("Alert email sent successfully.")
     except Exception as e:
         print("Error sending email:", e)
 
-# Function to detect fire in a frame
 def detect_fire(frame):
     test_image = cv2.resize(frame, (256, 256))
     test_image = np.expand_dims(test_image, axis=0)
     result = (cnn.predict(test_image) > 0.5).astype("int32")
-    return result[0][0] == 0  # Fire detected if result is 0
+    return result[0][0] == 0
 
-# Route to serve the HTML page
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     with open("index.html", "r") as file:
         html_content = file.read()
     return HTMLResponse(content=html_content)
 
-# WebSocket to stream the video feed
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -81,11 +73,9 @@ async def websocket_endpoint(websocket: WebSocket):
         else:
             message = "No fire detected."
         
-        # Encode frame to JPEG format
         _, buffer = cv2.imencode('.jpg', frame)
         frame_bytes = buffer.tobytes()
         
-        # Send frame to client
         await websocket.send_bytes(frame_bytes)
         await websocket.send_text(message)
         
